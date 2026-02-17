@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "QuickMark - 网页链接收藏",
+  "version": "1.0.0",
+  "description": "快速保存与管理网页链接",
+  "icons": {
+    "16": "logo/quickmark_16px.png",
+    "32": "logo/quickmark_32px.png",
+    "48": "logo/quickmark_48px.png",
+    "128": "logo/quickmark_128px.png"
+  },
+  "permissions": ["contextMenus", "tabs", "storage", "favicon", "bookmarks"],
+  "background": {
+    "service_worker": "src/extension/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "打开收藏管理",
+    "default_popup": "public/popup.html"
+  }
+}

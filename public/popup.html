@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuickMark - 收藏</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #1e293b;
+      width: 360px;
+      min-height: 200px;
+      background: #f8fafc;
+    }
+    .header {
+      padding: 14px 16px;
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .header-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .body { padding: 16px; }
+    .field { margin-bottom: 12px; }
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #64748b;
+    }
+    input, textarea, .category-btn {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      background: #fff;
+      color: #1e293b;
+    }
+    input:focus, textarea:focus, .category-btn:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+    .url-preview {
+      padding: 10px 12px;
+      background: #f1f5f9;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #64748b;
+      word-break: break-all;
+      line-height: 1.4;
+      max-height: 48px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    textarea { height: 56px; resize: none; }
+    .category-btn {
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .category-btn .arrow { color: #94a3b8; }
+    .category-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 4px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 10;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .category-option {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      background: none;
+      font-size: 13px;
+      text-align: left;
+      cursor: pointer;
+      color: #1e293b;
+    }
+    .category-option:hover { background: #f1f5f9; }
+    .category-option.selected { background: #eff6ff; color: #2563eb; font-weight: 500; }
+    .category-wrap { position: relative; }
+    .actions { display: flex; gap: 10px; margin-top: 16px; }
+    button {
+      flex: 1;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-save { background: #2563eb; color: #fff; }
+    .btn-save:hover { background: #1d4ed8; }
+    .btn-link {
+      background: #fff;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+    }
+    .btn-link:hover { background: #f8fafc; }
+    .tip {
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+      padding: 12px;
+      line-height: 1.5;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <span class="header-icon">
+      <img src="logo/logo.png" alt="QuickMark" />
+    </span>
+    <h1>收藏当前页面</h1>
+  </header>
+  <div class="body" id="formView">
+    <div class="field">
+      <label>链接</label>
+      <div class="url-preview" id="urlPreview">获取中…</div>
+    </div>
+    <div class="field">
+      <label>标题</label>
+      <input type="text" id="titleInput" placeholder="可选" />
+    </div>
+    <div class="field">
+      <label>分类</label>
+      <div class="category-wrap">
+        <button type="button" class="category-btn" id="categoryBtn">
+          <span id="categoryLabel">默认</span>
+          <span class="arrow">▼</span>
+        </button>
+        <div class="category-dropdown hidden" id="categoryDropdown"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>描述（可选）</label>
+      <textarea id="descInput" placeholder="添加备注…"></textarea>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn-link" id="btnOpenApp">打开管理页</button>
+      <button type="button" class="btn-save" id="btnSave">保存</button>
+    </div>
+  </div>
+  <div class="body hidden" id="emptyView">
+    <p class="tip">请先在普通网页上点击扩展图标，再收藏当前页面。</p>
+    <button type="button" class="btn-save" id="btnOpenAppEmpty" style="width:100%">打开管理页</button>
+  </div>
+  <script src="/popup.js"></script>
+</body>
+</html>
