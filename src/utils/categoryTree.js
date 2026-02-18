@@ -37,6 +37,19 @@ export function buildCategoryTree(cats) {
   return roots
 }
 
+/** 树形结构按先序遍历转成扁平列表 [{ id, name, parentId }]，用于保持拖拽后的完整顺序 */
+export function treeToFlat(nodes) {
+  const result = []
+  function walk(nodes) {
+    for (const n of nodes || []) {
+      result.push({ id: n.id, name: n.name, parentId: n.parentId ?? null })
+      if (n.children?.length) walk(n.children)
+    }
+  }
+  walk(nodes)
+  return result
+}
+
 /** 获取分类的完整路径（如 "工作/项目/前端"） */
 export function getCategoryPath(cat, allCats) {
   if (!cat) return ''

@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { Folder, FolderOpened, MoreFilled, Plus, Edit, Delete, ArrowRight } from '@element-plus/icons-vue'
-import { buildCategoryTree, getCategoryPath } from '../utils/categoryTree.js'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { Folder, FolderOpened, MoreFilled, Plus, Edit, Delete, ArrowRight, Rank } from '@element-plus/icons-vue'
+import Sortable from 'sortablejs'
+import { buildCategoryTree, getCategoryPath, treeToFlat } from '../utils/categoryTree.js'
 
 const props = defineProps({
   categories: { type: Array, default: () => [] },
@@ -9,7 +10,7 @@ const props = defineProps({
   isMaxLevel: { type: Function, required: true }
 })
 
-const emit = defineEmits(['select', 'add', 'edit', 'delete'])
+const emit = defineEmits(['select', 'add', 'edit', 'delete', 'reorder'])
 
 const collapsedIds = ref(new Set())
 const initialCollapsedDone = ref(false)
@@ -74,16 +75,71 @@ function path(node) {
 function isSelected(node) {
   return path(node) === props.selectedPath
 }
+
+const listEl = ref(null)
+let sortableInstance = null
+
+onMounted(() => {
+  if (!listEl.value) return
+  sortableInstance = Sortable.create(listEl.value, {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'category-item-ghost',
+    chosenClass: 'category-item-chosen',
+    onMove(evt) {
+      const dragParent = evt.dragged.getAttribute('data-parent-id')
+      const relatedParent = evt.related.getAttribute('data-parent-id')
+      return dragParent === relatedParent
+    },
+    onEnd(evt) {
+      const { oldIndex, newIndex } = evt
+      if (oldIndex === newIndex) return
+      const visible = visibleList.value
+      const dragged = visible[oldIndex]
+      const target = visible[newIndex]
+      const parentKey = dragged.parentId ?? 'root'
+      const targetParentKey = target.parentId ?? 'root'
+      if (parentKey !== targetParentKey) return
+      const allCats = props.categories || []
+      const siblings = allCats.filter(c => (c.parentId ?? null) === (dragged.parentId ?? null))
+      const oldIdxInSiblings = siblings.findIndex(s => s.id === dragged.id)
+      const newIdxInSiblings = siblings.findIndex(s => s.id === target.id)
+      if (oldIdxInSiblings === -1 || newIdxInSiblings === -1) return
+      const newSiblings = [...siblings]
+      const [moved] = newSiblings.splice(oldIdxInSiblings, 1)
+      newSiblings.splice(newIdxInSiblings, 0, moved)
+      const tree = buildCategoryTree(allCats)
+      const siblingIds = newSiblings.map(s => s.id)
+      function findNode(nodes, id) {
+        for (const n of nodes || []) {
+          if (n.id === id) return n
+          const found = findNode(n.children, id)
+          if (found) return found
+        }
+        return null
+      }
+      const arr = parentKey === 'root' ? tree : (findNode(tree, dragged.parentId)?.children || [])
+      if (arr.length) arr.sort((a, b) => siblingIds.indexOf(a.id) - siblingIds.indexOf(b.id))
+      const newFlat = treeToFlat(tree)
+      emit('reorder', newFlat)
+    }
+  })
+})
+
+onBeforeUnmount(() => {
+  sortableInstance?.destroy()
+})
 </script>
 
 <template>
-  <div class="category-list">
+  <div ref="listEl" class="category-list">
     <div
       v-for="node in visibleList"
       :key="node.id"
-      class="category-item"
+      class="category-item drag-handle"
       :class="{ 'is-active': isSelected(node) }"
       :style="{ paddingLeft: 12 + node.level * 16 + 'px' }"
+      :data-parent-id="node.parentId ?? 'root'"
       @click="emit('select', path(node))"
     >
       <span
@@ -96,10 +152,6 @@ function isSelected(node) {
         </el-icon>
       </span>
       <span v-else class="expand-placeholder" />
-      <el-icon class="folder-icon">
-        <FolderOpened v-if="isSelected(node)" />
-        <Folder v-else />
-      </el-icon>
       <span class="category-name">{{ node.name }}</span>
       <el-dropdown
         trigger="click"
@@ -159,13 +211,7 @@ function isSelected(node) {
   font-weight: 500;
 }
 
-.folder-icon {
-  flex-shrink: 0;
-  font-size: 16px;
-  color: #64748b;
-}
-
-.category-item.is-active .folder-icon {
+.category-item.is-active {
   color: #2563eb;
 }
 
@@ -195,6 +241,17 @@ function isSelected(node) {
   display: inline-block;
   width: 20px;
   flex-shrink: 0;
+}
+
+
+
+.category-item-ghost {
+  opacity: 0.5;
+  background: #e2e8f0;
+}
+
+.category-item-chosen {
+  background: #f1f5f9;
 }
 
 .category-name {

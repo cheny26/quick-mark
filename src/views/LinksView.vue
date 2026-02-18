@@ -326,6 +326,13 @@ async function confirmDeleteCategory() {
   closeDeleteCategory()
 }
 
+async function handleCategoryReorder(newFlat) {
+  categories.value = newFlat
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    await chrome.storage.local.set({ categories: newFlat })
+  }
+}
+
 onMounted(loadData)
 
 if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
@@ -375,6 +382,7 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
         @add="openAddCategory"
         @edit="openEditCategory"
         @delete="openDeleteCategory"
+        @reorder="handleCategoryReorder"
       />
     </aside>
 
