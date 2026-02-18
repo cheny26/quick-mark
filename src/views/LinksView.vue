@@ -101,6 +101,9 @@ function selectCategory(path) {
 
 const filteredLinks = computed(() => {
   let list = [...links.value].sort((a, b) => {
+    const oa = a.order ?? 1e15
+    const ob = b.order ?? 1e15
+    if (oa !== ob) return oa - ob
     const ta = new Date(a.createdAt || 0).getTime()
     const tb = new Date(b.createdAt || 0).getTime()
     return tb - ta
@@ -333,6 +336,31 @@ async function handleCategoryReorder(newFlat) {
   }
 }
 
+async function handleLinkReorder(reorderedList) {
+  if (!reorderedList?.length) return
+  const fullSorted = [...links.value].sort((a, b) => {
+    const oa = a.order ?? 1e15
+    const ob = b.order ?? 1e15
+    if (oa !== ob) return oa - ob
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  })
+  const filteredIds = new Set(filteredLinks.value.map(l => l.id))
+  const filteredIndices = fullSorted
+    .map((l, i) => (filteredIds.has(l.id) ? i : -1))
+    .filter(i => i >= 0)
+  const linkById = new Map(links.value.map(l => [l.id, l]))
+  const newFullSorted = [...fullSorted]
+  for (let i = 0; i < reorderedList.length && i < filteredIndices.length; i++) {
+    const orig = linkById.get(reorderedList[i].id)
+    if (orig) newFullSorted[filteredIndices[i]] = orig
+  }
+  const withOrder = newFullSorted.map((l, i) => ({ ...l, order: i }))
+  links.value = withOrder
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    await chrome.storage.local.set({ links: withOrder })
+  }
+}
+
 onMounted(loadData)
 
 if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
@@ -393,6 +421,7 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
             :links="filteredLinks"
             @edit="openEditForm"
             @delete="openDeleteConfirm"
+            @reorder="handleLinkReorder"
           />
         </div>
         <el-empty v-else description="暂无链接，试试右键保存当前页面" />

@@ -1,14 +1,41 @@
 <script setup>
-import { MoreFilled, Edit, Delete } from '@element-plus/icons-vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { MoreFilled, Edit, Delete, Rank } from '@element-plus/icons-vue'
+import Sortable from 'sortablejs'
 
-defineProps({
+const props = defineProps({
   links: {
     type: Array,
     default: () => []
   }
 })
 
-const emit = defineEmits(['edit', 'delete'])
+const emit = defineEmits(['edit', 'delete', 'reorder'])
+
+const listEl = ref(null)
+let sortableInstance = null
+
+onMounted(() => {
+  if (!listEl.value) return
+  sortableInstance = Sortable.create(listEl.value, {
+    handle: '.link-drag-handle',
+    animation: 150,
+    ghostClass: 'link-card-ghost',
+    chosenClass: 'link-card-chosen',
+    onEnd(evt) {
+      const { oldIndex, newIndex } = evt
+      if (oldIndex === newIndex) return
+      const list = [...props.links]
+      const [moved] = list.splice(oldIndex, 1)
+      list.splice(newIndex, 0, moved)
+      emit('reorder', list)
+    }
+  })
+})
+
+onBeforeUnmount(() => {
+  sortableInstance?.destroy()
+})
 
 function openUrl(url) {
   if (url) window.open(url, '_blank')
@@ -26,7 +53,7 @@ function handleDelete(linkId, e) {
 </script>
 
 <template>
-  <div class="link-list">
+  <div ref="listEl" class="link-list">
     <el-card
       v-for="link in links"
       :key="link.id"
@@ -34,6 +61,9 @@ function handleDelete(linkId, e) {
       shadow="hover"
     >
       <div class="card-inner">
+        <span class="link-drag-handle" title="拖动排序">
+          <el-icon><Rank /></el-icon>
+        </span>
         <el-dropdown
           trigger="click"
           placement="bottom-end"
@@ -100,6 +130,27 @@ function handleDelete(linkId, e) {
   flex-direction: column;
   position: relative;
 }
+.link-drag-handle {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  /* z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center; */
+  /* width: 28px;
+  height: 28px;
+  border-radius: 6px; */
+  cursor: grab;
+  color: #94a3b8;
+  /* transition: color 0.2s, background 0.2s; */
+}
+.link-card-ghost {
+  opacity: 0.6;
+}
+.link-card-chosen {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
 .card-more {
   position: absolute;
   top: 8px;
@@ -118,6 +169,7 @@ function handleDelete(linkId, e) {
   flex-direction: column;
   flex: 1;
   padding: 20px 18px 16px;
+  padding-left: 44px;
   padding-right: 44px;
   text-decoration: none;
   color: inherit;
