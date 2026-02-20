@@ -136,7 +136,10 @@ const logoUrl = '/logo/logo_128.png'
 .layout-main {
   flex: 1;
   min-width: 0;
+  width: 100%;
+  min-height: 100%;
   padding: 20px 24px 24px;
+  background: #F5F5F5;
   overflow: auto;
   box-sizing: border-box;
 }

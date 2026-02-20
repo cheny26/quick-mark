@@ -10,7 +10,8 @@ import {
   getCategoryPath,
   isMaxLevel,
   normalizeCategories as normalizeCat,
-  getAllSelectablePaths
+  getAllSelectablePaths,
+  generateCategoryId
 } from '../utils/categoryTree.js'
 
 const links = ref([])
@@ -188,12 +189,13 @@ async function ensureCategory(path) {
   if (parts.length === 0) return
   let parentId = null
   const newList = [...list]
+  let newIdx = 0
   for (const name of parts) {
     const existing = newList.find(c => c.name === name && (c.parentId ?? null) === parentId)
     if (existing) {
       parentId = existing.id
     } else {
-      const newCat = { id: 'c' + Date.now() + Math.random().toString(36).slice(2), name, parentId }
+      const newCat = { id: generateCategoryId(newIdx++), name, parentId }
       newList.push(newCat)
       parentId = newCat.id
     }
@@ -270,7 +272,7 @@ async function submitCategoryForm() {
       ElMessage.warning('同级下已存在同名分类')
       return
     }
-    const newCat = { id: 'c' + Date.now(), name: trimmed, parentId }
+    const newCat = { id: generateCategoryId(), name: trimmed, parentId }
     const newList = [...list, newCat]
     categories.value = newList
     await chrome.storage.local.set({ categories: newList })
@@ -510,8 +512,6 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
 .links-view {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  min-height: 100%;
   gap: 0;
 }
 

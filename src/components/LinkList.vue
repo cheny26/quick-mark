@@ -134,16 +134,8 @@ function handleDelete(linkId, e) {
   position: absolute;
   top: 3px;
   left: 3px;
-  /* z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center; */
-  /* width: 28px;
-  height: 28px;
-  border-radius: 6px; */
   cursor: grab;
   color: #94a3b8;
-  /* transition: color 0.2s, background 0.2s; */
 }
 .link-card-ghost {
   opacity: 0.6;

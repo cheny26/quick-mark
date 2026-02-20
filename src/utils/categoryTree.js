@@ -4,6 +4,18 @@
  */
 
 const MAX_LEVEL = 3
+
+/** 统一生成分类 ID：c + 时间戳；同一毫秒内多次调用可传 suffix 避免重复（如循环内传索引） */
+export function generateCategoryId(suffix) {
+  const base = Date.now()
+  return suffix === undefined ? base : base + '-' + suffix
+}
+
+/** 是否为旧格式 id（纯数字或 c+数字），需要归一化为新格式 */
+function isLegacyCategoryId(id) {
+  if (id == null || typeof id !== 'string') return true
+  return /^\d+$/.test(id) || /^c\d+$/.test(id)
+}
 const PATH_SEP = '/'
 
 /** 获取分类的层级（0=顶级，1=二级，2=三级） */
@@ -96,14 +108,14 @@ export function normalizeCategories(raw) {
     })
   }
   if (list.length && list[0] && typeof list[0] === 'object' && list[0].name !== undefined) {
-    list = list.map(c => ({
-      id: c.id || 'c' + Date.now(),
+    list = list.map((c, i) => ({
+      id: (c.id && !isLegacyCategoryId(c.id)) ? c.id : generateCategoryId(i),
       name: c.name != null ? String(c.name) : '未命名',
       parentId: c.parentId ?? null
     }))
   } else if (list.length) {
     list = list.map((c, i) => ({
-      id: 'c' + i,
+      id: generateCategoryId(i),
       name: typeof c === 'object' && c && c.name != null ? String(c.name) : String(c),
       parentId: null
     }))

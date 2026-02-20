@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Upload, FolderOpened } from '@element-plus/icons-vue'
-import { getAllSelectablePaths, normalizeCategories } from '../utils/categoryTree.js'
+import { getAllSelectablePaths, normalizeCategories, generateCategoryId } from '../utils/categoryTree.js'
 
 const importing = ref(false)
 const importResult = ref(null)
@@ -81,7 +81,7 @@ async function importBookmarks() {
           if (existing) {
             parentId = existing.id
           } else {
-            const newCat = { id: 'c' + Date.now() + Math.random().toString(36).slice(2), name, parentId }
+            const newCat = { id: generateCategoryId(), name, parentId }
             categories.push(newCat)
             parentId = newCat.id
           }
@@ -118,8 +118,7 @@ async function importBookmarks() {
 
 <template>
   <div class="settings-view">
-    <h2 class="page-title">设置</h2>
-
+    <h2>设置</h2>
     <div class="settings-section">
       <h3 class="section-title">数据</h3>
       <div class="settings-card">
@@ -152,14 +151,6 @@ async function importBookmarks() {
 
 <style scoped>
 .settings-view {
-  padding: 8px 0;
-}
-
-.page-title {
-  margin: 0 0 8px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
 }
 
 .page-desc {
