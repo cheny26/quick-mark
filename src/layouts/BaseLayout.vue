@@ -15,7 +15,7 @@ const isActive = (path) => {
   return route.path.startsWith(path)
 }
 
-const logoUrl = '/logo/logo_128.png'
+const logoUrl = '/logo/quickmark.svg'
 
 </script>
 
