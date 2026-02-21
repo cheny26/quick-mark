@@ -11,7 +11,7 @@
   },
   "permissions": ["contextMenus", "tabs", "storage", "favicon", "bookmarks"],
   "background": {
-    "service_worker": "src/extension/background.js",
+    "service_worker": "background.js",
     "type": "module"
   },
   "action": {
