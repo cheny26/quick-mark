@@ -211,10 +211,6 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
-.category-item.is-active {
-  color: #2563eb;
-}
-
 .expand-btn {
   display: inline-flex;
   flex-shrink: 0;
@@ -242,8 +238,6 @@ onBeforeUnmount(() => {
   width: 20px;
   flex-shrink: 0;
 }
-
-
 
 .category-item-ghost {
   opacity: 0.5;

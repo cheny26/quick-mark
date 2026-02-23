@@ -550,6 +550,7 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
 .category-sidebar {
   flex-shrink: 0;
   width: 180px;
+  height: calc(100vh - 140px);
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -565,6 +566,7 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
   justify-content: space-between;
   padding: 0 16px 12px;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .sidebar-title {

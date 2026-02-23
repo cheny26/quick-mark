@@ -169,7 +169,7 @@ function handleDelete(linkId, e) {
   min-width: 0;
 }
 .link-main:hover .link-title {
-  color: #2563EB;
+  color: #2563eb;
 }
 .link-top {
   display: flex;
@@ -190,7 +190,7 @@ function handleDelete(linkId, e) {
   margin: 0;
   font-size: 15px;
   font-weight: 500;
-  color: #1E293B;
+  color: #1e293b;
   transition: color 0.15s ease;
   white-space: nowrap;
   overflow: hidden;
@@ -200,14 +200,10 @@ function handleDelete(linkId, e) {
 .link-desc {
   margin: 8px 0 0;
   font-size: 13px;
-  color: #64748B;
+  color: #64748b;
   line-height: 1.5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.link-icon {
-  align-self: flex-start;
-  color: #94A3B8;
 }
 </style>

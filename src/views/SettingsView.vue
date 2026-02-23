@@ -150,9 +150,6 @@ async function importBookmarks() {
 </template>
 
 <style scoped>
-.settings-view {
-}
-
 .page-desc {
   margin: 24px 0 0;
   font-size: 14px;

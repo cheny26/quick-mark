@@ -7,7 +7,7 @@ const DEFAULT_CATEGORIES = [
 chrome.runtime.onInstalled.addListener(async () => {
   chrome.contextMenus.create({
     id: 'save-current-page',
-    title: '保存当前页面到收藏',
+    title: '保存当前页面',
     contexts: ['page'],
   })
   const { categories } = await chrome.storage.local.get(['categories'])

@@ -20,49 +20,51 @@ const logoUrl = '/logo/quickmark.svg'
 </script>
 
 <template>
-  <div class="base-layout">
-    <aside class="layout-sidebar">
-      <div class="sidebar-header">
-        <img :src="logoUrl" alt="QuickMark" class="brand-logo" />
-        <h1 class="brand">
-          <router-link to="/" class="brand-link">QuickMark</router-link>
-        </h1>
-      </div>
-      <nav class="nav">
-        <router-link
-          v-for="item in navItems"
-          :key="item.path"
-          :to="item.path"
-          class="nav-item"
-          :class="{ 'is-active': isActive(item.path) }"
-        >
-          <el-icon><component :is="item.icon" /></el-icon>
-          <span>{{ item.name }}</span>
-        </router-link>
-      </nav>
-    </aside>
-    <main class="layout-main">
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
-    </main>
+  <div class="common-layout">
+    <el-container>
+      <el-aside width="200px" class="layout-aside">
+        <div class="sidebar-header">
+          <img :src="logoUrl" alt="QuickMark" class="brand-logo" />
+          <h1 class="brand">
+            <router-link to="/" class="brand-link">QuickMark</router-link>
+          </h1>
+        </div>
+        <nav class="nav">
+          <router-link
+            v-for="item in navItems"
+            :key="item.path"
+            :to="item.path"
+            class="nav-item"
+            :class="{ 'is-active': isActive(item.path) }"
+          >
+            <el-icon><component :is="item.icon" /></el-icon>
+            <span>{{ item.name }}</span>
+          </router-link>
+        </nav>
+      </el-aside>
+      <el-container>
+        <el-main class="layout-main">
+          <router-view v-slot="{ Component }">
+            <transition name="fade" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+        </el-main>
+      </el-container>
+    </el-container>
   </div>
 </template>
 
 <style scoped>
-.base-layout {
-  min-height: 100vh;
-  background: #f8fafc;
-  font-family: 'Inter', -apple-system, sans-serif;
-  display: flex;
-  flex-direction: row;
+.common-layout {
+  height: 100vh;
 }
 
-.layout-sidebar {
-  flex-shrink: 0;
-  width: 220px;
+.common-layout :deep(.el-container) {
+  height: 100%;
+}
+
+.layout-aside {
   background: #fff;
   border-right: 1px solid #e2e8f0;
   display: flex;
@@ -135,13 +137,9 @@ const logoUrl = '/logo/quickmark.svg'
 
 .layout-main {
   flex: 1;
-  min-width: 0;
-  width: 100%;
-  min-height: 100%;
   padding: 20px 24px 24px;
-  background: #F5F5F5;
+  background: #f5f5f5;
   overflow: auto;
-  box-sizing: border-box;
 }
 
 .fade-enter-active,
