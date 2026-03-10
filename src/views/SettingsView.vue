@@ -55,7 +55,16 @@ async function importBookmarks() {
   try {
     const tree = await chrome.bookmarks.getTree()
     const root = tree[0]
-    const items = flattenBookmarks(root?.children || tree)
+    // 浏览器默认的顶级文件夹名称，跳过这些层级
+    const skipFolderNames = ['书签栏', '收藏夹栏', '其他书签', '书签菜单', 'Mobile Bookmarks', '移动设备书签']
+    const items = []
+    const topLevelFolders = root?.children || tree
+    for (const folder of topLevelFolders) {
+      const folderName = folder.title || '未命名文件夹'
+      const skip = skipFolderNames.includes(folderName)
+      // 跳过默认文件夹层级，直接导入其子内容
+      items.push(...flattenBookmarks(folder.children || [folder], skip ? [] : [folderName]))
+    }
     if (items.length === 0) {
       ElMessage.info('未找到可导入的书签')
       importing.value = false
