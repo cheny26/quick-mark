@@ -7,10 +7,18 @@ const props = defineProps({
   links: {
     type: Array,
     default: () => []
+  },
+  selectedIds: {
+    type: Set,
+    default: () => new Set()
+  },
+  batchMode: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['edit', 'delete', 'reorder'])
+const emit = defineEmits(['edit', 'delete', 'reorder', 'select'])
 
 const listEl = ref(null)
 let sortableInstance = null
@@ -18,7 +26,7 @@ let sortableInstance = null
 onMounted(() => {
   if (!listEl.value) return
   sortableInstance = Sortable.create(listEl.value, {
-    handle: '.link-drag-handle',
+    handle: '.card-inner',
     animation: 150,
     ghostClass: 'link-card-ghost',
     chosenClass: 'link-card-chosen',
@@ -41,6 +49,16 @@ function openUrl(url) {
   if (url) window.open(url, '_blank')
 }
 
+function handleCardClick(link, e) {
+  e?.stopPropagation?.()
+  if (props.batchMode) {
+    const nextChecked = !isSelected(link.id)
+    emit('select', link.id, nextChecked)
+  } else {
+    openUrl(link.url)
+  }
+}
+
 function handleEdit(link, e) {
   e?.stopPropagation?.()
   emit('edit', link)
@@ -50,6 +68,15 @@ function handleDelete(linkId, e) {
   e?.stopPropagation?.()
   emit('delete', linkId)
 }
+
+function handleSelect(linkId, checked, e) {
+  e?.stopPropagation?.()
+  emit('select', linkId, checked)
+}
+
+function isSelected(linkId) {
+  return props.selectedIds.has(linkId)
+}
 </script>
 
 <template>
@@ -57,13 +84,16 @@ function handleDelete(linkId, e) {
     <el-card
       v-for="link in links"
       :key="link.id"
-      class="link-card"
+      class="link-card "
       shadow="hover"
     >
       <div class="card-inner">
-        <span class="link-drag-handle" title="拖动排序">
-          <el-icon><Rank /></el-icon>
-        </span>
+        <el-checkbox
+          v-if="batchMode"
+          :model-value="isSelected(link.id)"
+          @change="(checked) => handleSelect(link.id, checked, $event)"
+          class="card-checkbox"
+        />
         <el-dropdown
           trigger="click"
           placement="bottom-end"
@@ -90,7 +120,8 @@ function handleDelete(linkId, e) {
         </el-dropdown>
         <a
           class="link-main"
-          @click.prevent="openUrl(link.url)"
+          :class="{ 'link-main--batch': batchMode }"
+          @click.prevent="handleCardClick(link, $event)"
         >
           <div class="link-top">
             <img
@@ -119,9 +150,6 @@ function handleDelete(linkId, e) {
 .link-card {
   transition: transform 0.15s ease;
 }
-.link-card:hover {
-  transform: translateY(-2px);
-}
 .link-card :deep(.el-card__body) {
   padding: 0;
 }
@@ -130,12 +158,11 @@ function handleDelete(linkId, e) {
   flex-direction: column;
   position: relative;
 }
-.link-drag-handle {
+.card-checkbox {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  cursor: grab;
-  color: #94a3b8;
+  top: 10px;
+  left: 8px;
+  z-index: 2;
 }
 .link-card-ghost {
   opacity: 0.6;
@@ -161,12 +188,15 @@ function handleDelete(linkId, e) {
   flex-direction: column;
   flex: 1;
   padding: 20px 18px 16px;
-  padding-left: 44px;
+  padding-left: 18px;
   padding-right: 44px;
   text-decoration: none;
   color: inherit;
   cursor: pointer;
   min-width: 0;
+}
+.link-main--batch {
+  padding-left: 44px;
 }
 .link-main:hover .link-title {
   color: #2563eb;

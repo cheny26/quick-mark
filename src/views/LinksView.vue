@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Search, Plus, Edit, Delete, MoreFilled } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Plus, Edit, Delete, MoreFilled, Check, Folder } from '@element-plus/icons-vue'
 import LinkList from '../components/LinkList.vue'
 import LinkForm from '../components/LinkForm.vue'
 import CategoryList from '../components/CategoryList.vue'
@@ -18,11 +18,16 @@ const links = ref([])
 const categories = ref([])
 const searchQuery = ref('')
 const selectedCategory = ref('默认')
+const isBatchMode = ref(false)
 const showForm = ref(false)
 const showCategoryForm = ref(false)
 const editingLink = ref(null)
 const deletingLinkId = ref(null)
 const editingCategory = ref(null)
+const selectedLinkIds = ref(new Set())
+const showBatchDialog = ref(false)
+const batchDialogType = ref('') // 'delete' | 'category'
+const batchCategoryPath = ref('')
 const categoryFormName = ref('')
 const categoryFormParentId = ref(null)
 const deletingCategoryId = ref(null)
@@ -51,6 +56,17 @@ function normalizeCategories(raw) {
 
 const categoryTree = computed(() => buildCategoryTree(categories.value))
 const selectablePaths = computed(() => getAllSelectablePaths(categories.value))
+
+/** 批量操作相关 */
+const selectedCount = computed(() => selectedLinkIds.value.size)
+
+const isAllSelected = computed(() => {
+  return filteredLinks.value.length > 0 && selectedCount.value === filteredLinks.value.length
+})
+
+const indeterminate = computed(() => {
+  return selectedCount.value > 0 && selectedCount.value < filteredLinks.value.length
+})
 
 /** 级联选择器选项：仅包含可添加子分类的节点（未达三级），编辑时排除自身及子孙 */
 const categoryTreeOptions = computed(() => {
@@ -170,6 +186,88 @@ function openDeleteConfirm(id) {
 
 function closeDeleteConfirm() {
   deletingLinkId.value = null
+}
+
+/** 批量操作函数 */
+function handleSelect(linkId, checked) {
+  const newSet = new Set(selectedLinkIds.value)
+  if (checked) {
+    newSet.add(linkId)
+  } else {
+    newSet.delete(linkId)
+  }
+  selectedLinkIds.value = newSet
+}
+
+function handleSelectAll(checked) {
+  if (checked) {
+    selectedLinkIds.value = new Set(filteredLinks.value.map(l => l.id))
+  } else {
+    selectedLinkIds.value = new Set()
+  }
+}
+
+function clearSelection() {
+  selectedLinkIds.value = new Set()
+}
+
+function enterBatchMode() {
+  isBatchMode.value = true
+}
+
+function exitBatchMode() {
+  isBatchMode.value = false
+  clearSelection()
+}
+
+function openBatchDelete() {
+  if (selectedCount.value === 0) return
+  ElMessageBox.confirm(
+    `确定要删除选中的 ${selectedCount.value} 条链接吗？`,
+    '批量删除',
+    {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    const newLinks = links.value.filter(l => !selectedLinkIds.value.has(l.id))
+    links.value = newLinks
+    await chrome.storage.local.set({ links: newLinks })
+    clearSelection()
+    ElMessage.success(`已删除 ${selectedCount.value} 条链接`)
+  }).catch(() => {})
+}
+
+function openBatchCategory() {
+  if (selectedCount.value === 0) return
+  batchCategoryPath.value = ''
+  batchDialogType.value = 'category'
+  showBatchDialog.value = true
+}
+
+async function confirmBatchCategory() {
+  const newPath = batchCategoryPath.value.trim()
+  if (!newPath) {
+    ElMessage.warning('请选择分类')
+    return
+  }
+  const newLinks = links.value.map(l => {
+    if (selectedLinkIds.value.has(l.id)) {
+      return { ...l, category: newPath }
+    }
+    return l
+  })
+  links.value = newLinks
+  await chrome.storage.local.set({ links: newLinks })
+  closeBatchDialog()
+  ElMessage.success(`已将 ${selectedCount.value} 条链接移动到 ${newPath}`)
+}
+
+function closeBatchDialog() {
+  showBatchDialog.value = false
+  batchDialogType.value = ''
+  batchCategoryPath.value = ''
 }
 
 async function confirmDelete() {
@@ -417,12 +515,56 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
     </aside>
 
     <div class="main-area">
+      <!-- 顶部右侧批量管理开关 -->
+      <div v-if="filteredLinks.length > 0" class="main-header">
+        <div class="main-header-spacer" />
+        <el-button
+          size="small"
+          text
+          type="primary"
+          @click="isBatchMode ? exitBatchMode() : enterBatchMode()"
+        >
+          {{ isBatchMode ? '退出批量管理' : '批量管理' }}
+        </el-button>
+      </div>
+
+      <!-- 批量操作栏：进入批量模式后显示 -->
+      <div v-if="filteredLinks.length > 0 && isBatchMode" class="batch-toolbar">
+        <div class="batch-left">
+          <el-checkbox
+            :model-value="isAllSelected"
+            :indeterminate="indeterminate"
+            @change="handleSelectAll"
+          >
+            全选
+          </el-checkbox>
+        </div>
+        <div class="batch-right">
+          <el-button
+            :icon="Folder"
+            :disabled="selectedCount === 0"
+            @click="openBatchCategory"
+          >
+            修改分类
+          </el-button>
+          <el-button
+            :icon="Delete"
+            :disabled="selectedCount === 0"
+            @click="openBatchDelete"
+          >
+            批量删除
+          </el-button>
+        </div>
+      </div>
       <div class="content">
         <div v-if="filteredLinks.length > 0" class="grid-container">
           <LinkList
             :links="filteredLinks"
+            :selected-ids="selectedLinkIds"
+            :batch-mode="isBatchMode"
             @edit="openEditForm"
             @delete="openDeleteConfirm"
+            @select="handleSelect"
             @reorder="handleLinkReorder"
           />
         </div>
@@ -503,6 +645,29 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
       <template #footer>
         <el-button @click="closeDeleteCategory()">取消</el-button>
         <el-button type="danger" @click="confirmDeleteCategory()">删除</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量操作对话框 -->
+    <el-dialog
+      v-model="showBatchDialog"
+      :title="batchDialogType === 'category' ? '修改分类' : ''"
+      width="400px"
+      @close="closeBatchDialog"
+    >
+      <template v-if="batchDialogType === 'category'">
+        <p class="batch-dialog-desc">将选中的 {{ selectedCount }} 条链接移动到：</p>
+        <el-cascader
+          v-model="batchCategoryPath"
+          :options="selectablePaths.map(p => ({ value: p.path, label: p.path }))"
+          :props="{ emitPath: false }"
+          placeholder="请选择分类"
+          style="width: 100%"
+        />
+      </template>
+      <template #footer>
+        <el-button @click="closeBatchDialog">取消</el-button>
+        <el-button type="primary" @click="confirmBatchCategory">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -594,6 +759,53 @@ if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
   display: flex;
   flex-direction: column;
   padding: 16px 0 0;
+}
+
+.main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.main-header-spacer {
+  flex: 1;
+}
+
+/* 批量操作栏 */
+.batch-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.batch-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.selected-hint {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.batch-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.batch-dialog-desc {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 14px;
 }
 
 .search-input :deep(.el-input__wrapper) {
