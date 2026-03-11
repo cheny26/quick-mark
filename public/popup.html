@@ -99,7 +99,13 @@
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       z-index: 10;
-      max-height: 200px;
+      max-height: 220px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .category-options {
+      max-height: 152px;
       overflow-y: auto;
     }
     .category-option {
@@ -115,7 +121,67 @@
     }
     .category-option:hover { background: #f1f5f9; }
     .category-option.selected { background: #eff6ff; color: #2563eb; font-weight: 500; }
-    .category-wrap { position: relative; }
+    .category-wrap { position: relative; flex: 1; min-width: 0; }
+    .category-row { display: flex; gap: 8px; align-items: stretch; }
+    .category-create-mini {
+      flex: 0 0 auto;
+      width: 40px;
+      min-width: 40px;
+      padding: 0;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #f1f5f9;
+      color: #2563eb;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .category-create-mini:hover {
+      background: #e2e8f0;
+      color: #1d4ed8;
+    }
+    .category-create-mini:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+    .category-create-confirm {
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+    }
+    .category-new-inline {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      align-items: center;
+    }
+    .category-new-inline input {
+      flex: 1;
+      margin: 0;
+      padding: 6px 8px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+    .category-new-cancel {
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #64748b;
+      cursor: pointer;
+    }
+    .category-new-cancel:hover {
+      background: #f8fafc;
+    }
     .actions { display: flex; gap: 10px; margin-top: 16px; }
     button {
       flex: 1;
@@ -163,12 +229,22 @@
     </div>
     <div class="field">
       <label>分类</label>
-      <div class="category-wrap">
-        <button type="button" class="category-btn" id="categoryBtn">
-          <span id="categoryLabel">默认</span>
-          <span class="arrow">▼</span>
-        </button>
-        <div class="category-dropdown hidden" id="categoryDropdown"></div>
+      <div class="category-row">
+        <div class="category-wrap">
+          <button type="button" class="category-btn" id="categoryBtn">
+            <span id="categoryLabel">默认</span>
+            <span class="arrow">▼</span>
+          </button>
+          <div class="category-dropdown hidden" id="categoryDropdown">
+            <div class="category-options" id="categoryOptions"></div>
+          </div>
+        </div>
+        <button type="button" class="category-create-mini" id="categoryCreateMiniBtn" title="新建分类">+</button>
+      </div>
+      <div class="category-new-inline hidden" id="categoryNewInline">
+        <input type="text" id="categoryNewInput" placeholder="输入新分类名称" maxlength="50" />
+        <button type="button" class="category-create-confirm" id="categoryNewConfirm">添加</button>
+        <button type="button" class="category-new-cancel" id="categoryNewCancel">取消</button>
       </div>
     </div>
     <div class="field">

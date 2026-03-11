@@ -78,8 +78,35 @@
     window.close()
   }
 
+  /** 生成分类 ID，与管理页保持一致 */
+  function generateCategoryId() {
+    return 'c' + Date.now()
+  }
+
+  /** 在 popup 中新增顶级分类并刷新下拉、选中新分类（name 由调用方传入，来自内联输入框） */
+  async function addCategoryByName(name, state, categoryLabelEl, categoryOptionsEl, categoryDropdownEl) {
+    const trimmed = (name || '').trim()
+    if (!trimmed) return false
+    const { links: _links, categories: raw } = await chrome.storage.local.get(['links', 'categories'])
+    const cats = normalizeCategories(raw)
+    const rootNames = cats.filter(c => !c.parentId).map(c => c.name)
+    if (rootNames.includes(trimmed)) {
+      alert('已存在同名顶级分类，请换一个名称')
+      return false
+    }
+    const newCat = { id: generateCategoryId(), name: trimmed, parentId: null }
+    const newCats = [...cats, newCat]
+    await chrome.storage.local.set({ categories: newCats })
+    const paths = getAllSelectablePaths(newCats)
+    const targetPath = paths.find(p => p.name === trimmed)?.path || trimmed
+    state.selectedCategory = targetPath
+    renderCategoryDropdown(newCats, state, categoryLabelEl, categoryOptionsEl)
+    categoryDropdownEl.classList.add('hidden')
+    return true
+  }
+
   /** 根据分类列表渲染下拉（多级路径），并保持 state.selectedCategory 与选中项同步 */
-  function renderCategoryDropdown(cats, state, categoryLabelEl, categoryDropdownEl) {
+  function renderCategoryDropdown(cats, state, categoryLabelEl, categoryOptionsEl) {
     const paths = getAllSelectablePaths(cats)
     const pathStrs = paths.map(p => p.path)
     const current = state.selectedCategory
@@ -88,7 +115,7 @@
     }
     categoryLabelEl.textContent = state.selectedCategory
 
-    categoryDropdownEl.innerHTML = ''
+    categoryOptionsEl.innerHTML = ''
     paths.forEach(p => {
       const path = p.path
       const btn = document.createElement('button')
@@ -102,7 +129,7 @@
         categoryDropdownEl.querySelectorAll('.category-option').forEach(o => o.classList.remove('selected'))
         btn.classList.add('selected')
       })
-      categoryDropdownEl.appendChild(btn)
+      categoryOptionsEl.appendChild(btn)
     })
   }
 
@@ -114,6 +141,16 @@
     const categoryBtn = document.getElementById('categoryBtn')
     const categoryLabel = document.getElementById('categoryLabel')
     const categoryDropdown = document.getElementById('categoryDropdown')
+    const categoryOptions = document.getElementById('categoryOptions')
+    const categoryCreateInline = document.getElementById('categoryCreateInline')
+    const categoryCreateInput = document.getElementById('categoryCreateInput')
+    const categoryCreateConfirm = document.getElementById('categoryCreateConfirm')
+    const categoryCreateMiniBtn = document.getElementById('categoryCreateMiniBtn')
+    const categoryRow = document.querySelector('.category-row')
+    const categoryNewInline = document.getElementById('categoryNewInline')
+    const categoryNewInput = document.getElementById('categoryNewInput')
+    const categoryNewConfirm = document.getElementById('categoryNewConfirm')
+    const categoryNewCancel = document.getElementById('categoryNewCancel')
     const descInput = document.getElementById('descInput')
     const btnSave = document.getElementById('btnSave')
     const btnOpenApp = document.getElementById('btnOpenApp')
@@ -159,7 +196,7 @@
     const cats = normalizeCategories(rawCategories)
     const paths = getAllSelectablePaths(cats)
     const categoryState = { selectedCategory: paths[0] ? paths[0].path : DEFAULT_CATEGORY }
-    renderCategoryDropdown(cats, categoryState, categoryLabel, categoryDropdown)
+    renderCategoryDropdown(cats, categoryState, categoryLabel, categoryOptions)
 
     /** storage 中分类变化时（如在管理页新增分类），重新拉取并刷新下拉 */
     if (chrome.storage && chrome.storage.onChanged) {
@@ -167,15 +204,90 @@
         if (areaName !== 'local' || !changes.categories) return
         var raw = changes.categories.newValue
         var newCats = normalizeCategories(raw !== undefined && raw !== null ? raw : [])
-        renderCategoryDropdown(newCats, categoryState, categoryLabel, categoryDropdown)
+        renderCategoryDropdown(newCats, categoryState, categoryLabel, categoryOptions)
+      })
+    }
+
+    if (categoryCreateInline && categoryCreateInput && categoryCreateConfirm) {
+      categoryCreateConfirm.addEventListener('click', async function () {
+        const name = categoryCreateInput.value
+        const ok = await addCategoryByName(name, categoryState, categoryLabel, categoryOptions, categoryDropdown)
+        if (ok) {
+          categoryCreateInline.classList.add('hidden')
+          categoryCreateInput.value = ''
+        }
+      })
+      categoryCreateInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') categoryCreateConfirm.click()
+        if (e.key === 'Escape') {
+          categoryCreateInline.classList.add('hidden')
+          categoryCreateInput.value = ''
+        }
+      })
+    }
+
+    if (categoryCreateMiniBtn && categoryRow && categoryNewInline && categoryNewInput && categoryNewConfirm && categoryNewCancel) {
+      categoryCreateMiniBtn.addEventListener('click', function (e) {
+        e.stopPropagation()
+        if (!categoryRow.classList.contains('hidden')) {
+          categoryRow.classList.add('hidden')
+        }
+        categoryNewInline.classList.remove('hidden')
+        categoryNewInput.value = ''
+        categoryNewInput.focus()
+      })
+
+      async function handleNewCategoryConfirm() {
+        const name = categoryNewInput.value
+        const ok = await addCategoryByName(name, categoryState, categoryLabel, categoryOptions, categoryDropdown)
+        if (ok) {
+          categoryNewInline.classList.add('hidden')
+          categoryRow.classList.remove('hidden')
+          categoryNewInput.value = ''
+        }
+      }
+
+      categoryNewConfirm.addEventListener('click', function () {
+        handleNewCategoryConfirm()
+      })
+
+      categoryNewInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          handleNewCategoryConfirm()
+        }
+        if (e.key === 'Escape') {
+          categoryNewInline.classList.add('hidden')
+          categoryRow.classList.remove('hidden')
+          categoryNewInput.value = ''
+        }
+      })
+
+      categoryNewCancel.addEventListener('click', function () {
+        categoryNewInline.classList.add('hidden')
+        categoryRow.classList.remove('hidden')
+        categoryNewInput.value = ''
       })
     }
 
     categoryBtn.addEventListener('click', (e) => {
       e.stopPropagation()
       categoryDropdown.classList.toggle('hidden')
+      if (categoryDropdown.classList.contains('hidden') && categoryCreateInline && !categoryCreateInline.classList.contains('hidden')) {
+        categoryCreateInline.classList.add('hidden')
+        if (categoryCreateInput) categoryCreateInput.value = ''
+      }
     })
-    document.addEventListener('click', () => categoryDropdown.classList.add('hidden'))
+    document.addEventListener('click', function () {
+      categoryDropdown.classList.add('hidden')
+      if (categoryCreateInline && !categoryCreateInline.classList.contains('hidden')) {
+        categoryCreateInline.classList.add('hidden')
+        if (categoryCreateInput) categoryCreateInput.value = ''
+      }
+    })
+    if (categoryDropdown) {
+      categoryDropdown.addEventListener('click', function (e) { e.stopPropagation() })
+    }
 
     btnSave.addEventListener('click', async () => {
       const titleVal = titleInput.value.trim() || url
